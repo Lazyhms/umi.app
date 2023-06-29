@@ -1,0 +1,3 @@
+interface FormData {
+    toJson(): any
+}
