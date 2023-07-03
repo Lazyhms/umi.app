@@ -50,19 +50,21 @@ const optionsItmes = [
 
 export default {
   'GET /api/dorpDown/roles': (req: any, res: any) => {
-    const { pageIndex, pageSize } = req.query;
-    
-    let start = parseInt(pageIndex) * parseInt(pageSize);
+    const { pageIndex, pageSize, search } = req.query;
+
+    let start = (parseInt(pageIndex) - 1) * parseInt(pageSize);
     let end = start + parseInt(pageSize);
 
     if (end >= optionsItmes.length) {
       end = optionsItmes.length;
     }
 
+    const data = (search ?? '') === '' ? optionsItmes : optionsItmes.filter(f => f.label.includes(search));
+
     setTimeout(() => {
       res.json({
         success: true,
-        data: optionsItmes.slice(start, end),
+        data: data.slice(start, end),
         totalCount: optionsItmes.length
       });
     }, 3000)

@@ -1,4 +1,4 @@
-import RemoteSelect, { RemoteOption } from '@/components/Select/RemoteSelect.d';
+import RemoteSelect, { RemoteOption } from '@/components/Select';
 import { useRef } from 'react';
 
 const TableList: React.FC<unknown> = () => {

@@ -25,12 +25,13 @@ export interface RemoteOption {
 const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) => {
     const { options, remote } = props;
 
+    const [search, setSearch] = useState(undefined);
     const [loading, setLoading] = useState(false);
     const [totalCount, setTotalCount] = useState(0);
-    const [pageIndex, setPageIndex] = useState(remote?.pageIndex ?? 0);
+    const [pageIndex, setPageIndex] = useState(remote?.pageIndex ?? 1);
     const [remoteOption, setRemoteOption] = useState<RemoteOption>({ option: options ?? [] });
 
-    const getItems = async () => {
+    const getItems = async (mode: 'append' | 'replace') => {
         if (loading) {
             return;
         }
@@ -39,7 +40,7 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
         }
 
         const currentLength = remoteOption.option.length - (options?.length ?? 0);
-        if (currentLength > totalCount) {
+        if (currentLength !== 0 && totalCount !== 0 && currentLength >= totalCount) {
             return;
         }
 
@@ -49,31 +50,48 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
             params: {
                 pageIndex,
                 pageSize: remote!.pageSize ?? 10,
+                search
             },
             responseInterceptors: remote?.responseInterceptors === null ? [] : [remote!.responseInterceptors!],
         }).then((e) => {
             setPageIndex(pageIndex + 1);
             setTotalCount(e.totalCount);
             setRemoteOption({
-                option: [...remoteOption.option!, ...e.data],
+                option: mode === 'append' ? [...remoteOption.option!, ...e.data] : [...e.data],
             });
         }).then(() => {
             setLoading(false);
         });
     };
 
-    const handleDropdownVisibleChange = async (open: boolean) => {
-        if (open && (remoteOption?.option.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
-            await getItems();
+    const handlePopupScroll = async (event: any) => {
+        event.persist();
+
+        const { scrollTop, offsetHeight, scrollHeight } = event.target;
+        if (scrollTop + offsetHeight === scrollHeight) {
+            await getItems('append');
         }
     };
 
-    const handlePopupScroll = async (e: any) => {
-        e.persist();
+    const handleEnterKeyDown = async (event: any) => {
+        event.persist();
 
-        const { scrollTop, offsetHeight, scrollHeight } = e.target;
-        if (scrollTop + offsetHeight === scrollHeight) {
-            await getItems();
+        const search = event.target.value;
+        if (event.code === "Enter" && search !== '') {
+
+            console.log(search);
+
+            setSearch(search);
+            setPageIndex(1);
+            setRemoteOption({ option: options ?? [] });
+
+            await getItems('replace');
+        }
+    }
+
+    const handleDropdownVisibleChange = async (open: boolean) => {
+        if (open && (remoteOption?.option.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
+            await getItems('append');
         }
     };
 
@@ -82,8 +100,14 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
     return (
         <Select
             {...props}
+            showSearch={true}
+            allowClear={true}
             loading={loading}
+            filterOption={(input, option) =>
+                ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())
+            }
             options={remoteOption.option}
+            onKeyDown={handleEnterKeyDown}
             onPopupScroll={handlePopupScroll}
             onDropdownVisibleChange={handleDropdownVisibleChange}
         />
