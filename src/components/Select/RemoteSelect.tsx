@@ -1,5 +1,6 @@
 import { AxiosResponse, request } from '@umijs/max';
 import { Select, SelectProps } from 'antd';
+import { DefaultOptionType } from 'antd/es/select';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 type IResponseInterceptor = <T = any>(
@@ -12,41 +13,34 @@ interface remoteConfig {
     responseInterceptors?: IResponseInterceptor;
 }
 
-export interface OptionItem {
-    data: any[];
-    totalPage: number;
-}
-
 interface RemoteSelectProps extends SelectProps {
     remote?: remoteConfig;
 }
 
-const RemoteSelect = forwardRef<OptionItem, RemoteSelectProps>((props, ref) => {
+export interface RemoteOption {
+    option: DefaultOptionType[]
+}
+
+const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) => {
     const { options, remote } = props;
 
-    const [pageIndex, setItemPage] = useState(0);
+    const [pageIndex, setPageIndex] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [optionsItem, setOptionsItem] = useState<OptionItem>({
-        data: options ?? [],
-        totalPage: 1,
-    });
+    const [optionsItem, setOptionsItem] = useState<RemoteOption>({ option: options ?? [] });
+    const [totalPage, setTotalPage] = useState(1);
 
     const getItems = async () => {
         if (loading) {
             return;
         }
-
         if ((remote?.url ?? '') === '') {
             return;
         }
 
         const tempPageIndex = pageIndex + 1;
-
-        if (tempPageIndex > optionsItem.totalPage) {
+        if (tempPageIndex > totalPage) {
             return;
         }
-
-        setItemPage(tempPageIndex);
 
         setLoading(true);
 
@@ -59,23 +53,19 @@ const RemoteSelect = forwardRef<OptionItem, RemoteSelectProps>((props, ref) => {
                 remote?.responseInterceptors === null
                     ? []
                     : [remote!.responseInterceptors!],
-            timeout: 50000
         }).then((e) => {
+            setPageIndex(tempPageIndex);
+            setTotalPage(e.totalPage);
             setOptionsItem({
-                data: [...optionsItem.data!, ...e.data],
-                totalPage: e.totalPage,
+                option: [...optionsItem.option!, ...e.data],
             });
-
+        }).then(() => {
             setLoading(false);
         });
     };
 
     const handleDropdownVisibleChange = async (open: boolean) => {
-        if (
-            open &&
-            (optionsItem?.data.length ?? 0) === (options?.length ?? 0) &&
-            (remote ?? '') !== ''
-        ) {
+        if (open && (optionsItem?.option.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
             await getItems();
         }
     };
@@ -94,8 +84,8 @@ const RemoteSelect = forwardRef<OptionItem, RemoteSelectProps>((props, ref) => {
     return (
         <Select
             {...props}
-            options={optionsItem.data}
             loading={loading}
+            options={optionsItem.option}
             onPopupScroll={handlePopupScroll}
             onDropdownVisibleChange={handleDropdownVisibleChange}
         />

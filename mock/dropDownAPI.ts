@@ -65,7 +65,6 @@ export default {
       res.json({
         success: true,
         data: optionsItmes.slice(start, end),
-        selected: null,
         totalPage: totalPage
       });
     }, 3000)

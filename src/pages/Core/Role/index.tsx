@@ -1,18 +1,17 @@
-import RemoteSelect, { OptionItem } from '@/components/Select/RemoteSelect';
+import RemoteSelect, { RemoteOption } from '@/components/Select/RemoteSelect';
 import { useRef } from 'react';
 
 const TableList: React.FC<unknown> = () => {
 
-  const childRef = useRef<OptionItem>(null);
+  const childRef = useRef<RemoteOption>(null);
 
   return (
     <>
       <RemoteSelect
-        defaultValue={null}
         options={[
           {
             label: "请选择",
-            value: null
+            value: undefined
           }
         ]}
         ref={childRef}
@@ -20,7 +19,7 @@ const TableList: React.FC<unknown> = () => {
           url: '/api/dorpDown/roles',
           pageSize: 10,
           responseInterceptors: (e: any) => {
-            e.data.data = e.data.data.map((m: { label: any; }) => {
+            e.data.data = e.data.data.map((m: any) => {
               return {
                 ...m,
                 label1: m.label,
@@ -30,13 +29,10 @@ const TableList: React.FC<unknown> = () => {
           }
         }}
         onSelect={(e) => {
-          console.log(e);
-
-          const item = childRef.current?.data?.find((f: any) => f.value === e);
+          const item = childRef.current?.option?.find((f: any) => f.value === e);
           console.log(item);
         }}
       ></RemoteSelect>
-      <label> {new Date().format('yyyy-MM-dd')}</label>
     </>
   );
 };
