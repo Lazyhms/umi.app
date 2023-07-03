@@ -9,6 +9,7 @@ type IResponseInterceptor = <T = any>(
 
 interface remoteConfig {
     url: string | null;
+    pageIndex?: number;
     pageSize?: number;
     responseInterceptors?: IResponseInterceptor;
 }
@@ -24,10 +25,10 @@ export interface RemoteOption {
 const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) => {
     const { options, remote } = props;
 
-    const [pageIndex, setPageIndex] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [optionsItem, setOptionsItem] = useState<RemoteOption>({ option: options ?? [] });
-    const [totalPage, setTotalPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [pageIndex, setPageIndex] = useState(remote?.pageIndex ?? 0);
+    const [remoteOption, setRemoteOption] = useState<RemoteOption>({ option: options ?? [] });
 
     const getItems = async () => {
         if (loading) {
@@ -37,8 +38,8 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
             return;
         }
 
-        const tempPageIndex = pageIndex + 1;
-        if (tempPageIndex > totalPage) {
+        const currentLength = remoteOption.option.length - (options?.length ?? 0);
+        if (currentLength > totalCount) {
             return;
         }
 
@@ -49,15 +50,12 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
                 pageIndex,
                 pageSize: remote!.pageSize ?? 10,
             },
-            responseInterceptors:
-                remote?.responseInterceptors === null
-                    ? []
-                    : [remote!.responseInterceptors!],
+            responseInterceptors: remote?.responseInterceptors === null ? [] : [remote!.responseInterceptors!],
         }).then((e) => {
-            setPageIndex(tempPageIndex);
-            setTotalPage(e.totalPage);
-            setOptionsItem({
-                option: [...optionsItem.option!, ...e.data],
+            setPageIndex(pageIndex + 1);
+            setTotalCount(e.totalCount);
+            setRemoteOption({
+                option: [...remoteOption.option!, ...e.data],
             });
         }).then(() => {
             setLoading(false);
@@ -65,7 +63,7 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
     };
 
     const handleDropdownVisibleChange = async (open: boolean) => {
-        if (open && (optionsItem?.option.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
+        if (open && (remoteOption?.option.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
             await getItems();
         }
     };
@@ -79,13 +77,13 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
         }
     };
 
-    useImperativeHandle(ref, () => (optionsItem));
+    useImperativeHandle(ref, () => (remoteOption));
 
     return (
         <Select
             {...props}
             loading={loading}
-            options={optionsItem.option}
+            options={remoteOption.option}
             onPopupScroll={handlePopupScroll}
             onDropdownVisibleChange={handleDropdownVisibleChange}
         />

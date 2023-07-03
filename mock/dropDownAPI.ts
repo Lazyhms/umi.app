@@ -51,9 +51,7 @@ const optionsItmes = [
 export default {
   'GET /api/dorpDown/roles': (req: any, res: any) => {
     const { pageIndex, pageSize } = req.query;
-
-    const totalPage = Math.ceil(optionsItmes.length / parseInt(pageSize));
-
+    
     let start = parseInt(pageIndex) * parseInt(pageSize);
     let end = start + parseInt(pageSize);
 
@@ -65,7 +63,7 @@ export default {
       res.json({
         success: true,
         data: optionsItmes.slice(start, end),
-        totalPage: totalPage
+        totalCount: optionsItmes.length
       });
     }, 3000)
   }
