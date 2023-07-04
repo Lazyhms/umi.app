@@ -18,6 +18,7 @@ interface remoteConfig {
     url: string | null;
     pageIndex?: number;
     pageSize?: number;
+    immediately?: boolean;
     responseInterceptors?: IResponseInterceptor;
 }
 
@@ -40,25 +41,25 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
 
     const refTotalCount = useRef(0);
 
-    const [render, setRender] = useState({
-        loading: false,
-        options: options ?? [],
+    const [loading, setLoading] = useState(false);
+    const [remoteOption, setRemoteOption] = useState<RemoteOption>({
+        options: options ?? []
     });
 
-    const getItems = async (mode: 'append' | 'replace') => {
-        if (render.loading) {
+    const getItems = async () => {
+        if (loading) {
             return;
         }
         if ((remote?.url ?? '') === '') {
             return;
         }
 
-        const currentLength = render.options.length - (options?.length ?? 0);
+        const currentLength = remoteOption.options.length - (options?.length ?? 0);
         if (currentLength !== 0 && refTotalCount.current !== 0 && currentLength >= refTotalCount.current) {
             return;
         }
 
-        render.loading = true;
+        setLoading(true)
 
         await request(remote!.url!, {
             params: refRequestParams.current,
@@ -66,10 +67,11 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
         }).then((e) => {
             refTotalCount.current = e.totalCount;
             refRequestParams.current.pageIndex += 1;
-            setRender({
-                loading: false,
-                options: mode === 'append' ? [...render.options!, ...e.data] : [...e.data]
+            setRemoteOption({
+                options: [...remoteOption.options!, ...e.data]
             });
+        }).then(() => {
+            setLoading(false);
         });
     };
 
@@ -78,7 +80,7 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
 
         const { scrollTop, offsetHeight, scrollHeight } = event.target;
         if (scrollTop + offsetHeight === scrollHeight) {
-            await getItems('append');
+            await getItems();
         }
     };
 
@@ -89,9 +91,12 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
         if (event.code === "Enter" && search !== '') {
             refRequestParams.current.pageIndex = 1;
             refRequestParams.current.search = search;
-            setRender({ loading: false, options: options ?? [] });
 
-            await getItems('replace');
+            setRemoteOption({
+                options: options ?? []
+            });
+
+            await getItems();
         }
     }
 
@@ -99,28 +104,31 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
         refTotalCount.current = 0;
         refRequestParams.current.pageIndex = 1;
         refRequestParams.current.search = undefined;
-        setRender({ loading: false, options: options ?? [] });
+
+        setRemoteOption({
+            options: options ?? []
+        });
     }
 
     const handleDropdownVisibleChange = async (open: boolean) => {
-        if (open && (render.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
-            await getItems('append');
+        if (open && (remote?.immediately ?? false) && (remoteOption.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
+            await getItems();
         }
     };
 
-    useImperativeHandle(ref, () => ({ options: render.options }));
+    useImperativeHandle(ref, () => ({ options: remoteOption.options }));
 
     return (
         <Select
             {...props}
             showSearch={true}
             allowClear={true}
-            loading={render.loading}
+            loading={loading}
             filterOption={(input, option) =>
                 ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())
             }
             onClear={handleClear}
-            options={render.options}
+            options={remoteOption.options}
             onKeyDown={handleEnterKeyDown}
             onPopupScroll={handlePopupScroll}
             onDropdownVisibleChange={handleDropdownVisibleChange}
