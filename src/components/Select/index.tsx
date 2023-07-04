@@ -111,7 +111,7 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
     }
 
     const handleDropdownVisibleChange = async (open: boolean) => {
-        if (open && (remote?.immediately ?? false) && (remoteOption.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
+        if (open && (remote?.immediately ?? true) && (remoteOption.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
             await getItems();
         }
     };
