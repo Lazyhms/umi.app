@@ -1,7 +1,7 @@
 import { AxiosResponse, request } from '@umijs/max';
 import { Select, SelectProps } from 'antd';
 import { DefaultOptionType } from 'antd/es/select';
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
 type IResponseInterceptor = <T = any>(
     response: AxiosResponse<T>,
@@ -19,48 +19,51 @@ interface RemoteSelectProps extends SelectProps {
 }
 
 export interface RemoteOption {
-    option: DefaultOptionType[]
+    options: DefaultOptionType[]
 }
 
 const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) => {
     const { options, remote } = props;
 
-    const [search, setSearch] = useState(undefined);
-    const [loading, setLoading] = useState(false);
-    const [totalCount, setTotalCount] = useState(0);
-    const [pageIndex, setPageIndex] = useState(remote?.pageIndex ?? 1);
-    const [remoteOption, setRemoteOption] = useState<RemoteOption>({ option: options ?? [] });
+    const refRequestParams = useRef({
+        search: undefined,
+        pageSize: remote!.pageSize ?? 10,
+        pageIndex: remote?.pageIndex ?? 1,
+    })
+
+    const refTotalCount = useRef(0);
+
+    const [render, setRender] = useState({
+        loading: false,
+        options: options ?? [],
+    });
 
     const getItems = async (mode: 'append' | 'replace') => {
-        if (loading) {
+        if (render.loading) {
             return;
         }
         if ((remote?.url ?? '') === '') {
             return;
         }
 
-        const currentLength = remoteOption.option.length - (options?.length ?? 0);
-        if (currentLength !== 0 && totalCount !== 0 && currentLength >= totalCount) {
+        const currentLength = render.options.length - (options?.length ?? 0);
+        console.log(currentLength, refTotalCount.current);
+        if (currentLength !== 0 && refTotalCount.current !== 0 && currentLength >= refTotalCount.current) {
             return;
         }
 
-        setLoading(true);
+        render.loading = true;
 
         await request(remote!.url!, {
-            params: {
-                pageIndex,
-                pageSize: remote!.pageSize ?? 10,
-                search
-            },
+            params: refRequestParams.current,
             responseInterceptors: remote?.responseInterceptors === null ? [] : [remote!.responseInterceptors!],
         }).then((e) => {
-            setPageIndex(pageIndex + 1);
-            setTotalCount(e.totalCount);
-            setRemoteOption({
-                option: mode === 'append' ? [...remoteOption.option!, ...e.data] : [...e.data],
+            refTotalCount.current = e.totalCount;
+            refRequestParams.current.pageIndex += 1;
+            setRender({
+                loading: false,
+                options: mode === 'append' ? [...render.options!, ...e.data] : [...e.data]
             });
-        }).then(() => {
-            setLoading(false);
         });
     };
 
@@ -78,35 +81,40 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
 
         const search = event.target.value;
         if (event.code === "Enter" && search !== '') {
-
-            console.log(search);
-
-            setSearch(search);
-            setPageIndex(1);
-            setRemoteOption({ option: options ?? [] });
+            refRequestParams.current.pageIndex = 1;
+            refRequestParams.current.search = search;
+            setRender({ loading: false, options: options ?? [] });
 
             await getItems('replace');
         }
     }
 
+    const handleClear = () => {
+        refTotalCount.current = 0;
+        refRequestParams.current.pageIndex = 1;
+        refRequestParams.current.search = undefined;
+        setRender({ loading: false, options: options ?? [] });
+    }
+
     const handleDropdownVisibleChange = async (open: boolean) => {
-        if (open && (remoteOption?.option.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
+        if (open && (render.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
             await getItems('append');
         }
     };
 
-    useImperativeHandle(ref, () => (remoteOption));
+    useImperativeHandle(ref, () => ({ options: render.options }));
 
     return (
         <Select
             {...props}
             showSearch={true}
             allowClear={true}
-            loading={loading}
+            loading={render.loading}
             filterOption={(input, option) =>
                 ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())
             }
-            options={remoteOption.option}
+            onClear={handleClear}
+            options={render.options}
             onKeyDown={handleEnterKeyDown}
             onPopupScroll={handlePopupScroll}
             onDropdownVisibleChange={handleDropdownVisibleChange}

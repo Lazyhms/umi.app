@@ -65,7 +65,7 @@ export default {
       res.json({
         success: true,
         data: data.slice(start, end),
-        totalCount: optionsItmes.length
+        totalCount: data.length
       });
     }, 3000)
   }

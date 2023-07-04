@@ -7,6 +7,7 @@ const TableList: React.FC<unknown> = () => {
 
   return (
     <RemoteSelect
+      mode='multiple'
       options={[
         {
           label: "请选择",
@@ -28,7 +29,7 @@ const TableList: React.FC<unknown> = () => {
         }
       }}
       onSelect={(e) => {
-        const item = childRef.current?.option?.find((f: any) => f.value === e);
+        const item = childRef.current?.options?.find((f: any) => f.value === e);
         console.log(item);
       }}
     ></RemoteSelect>
