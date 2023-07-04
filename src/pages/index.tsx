@@ -1,10 +1,8 @@
 import { PageContainer } from '@ant-design/pro-components';
 import styles from './index.less';
-import { useState } from 'react';
 import { Divider } from 'antd';
 
 const HomePage: React.FC = () => {
-  const [date] = useState(new Date().format("yyyy-MM-dd HH:mm:ss"));
 
   const o: any[] = [
     { name: "111" },
@@ -26,7 +24,7 @@ const HomePage: React.FC = () => {
         <Divider type="horizontal" />
         {"name".isNullOrWhiteSpace().toString()}
         <Divider type="horizontal" />
-        {date}
+        {new Date().format("yyyy-MM-dd HH:mm:ss")}
         <Divider type="horizontal" />
         {[1, 1, 2, 3, 4, 5].distinct().toString()}
         <Divider type="horizontal" />

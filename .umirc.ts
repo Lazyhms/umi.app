@@ -9,6 +9,7 @@ export default defineConfig({
   layout: {
     title: '后台管理',
   },
+  locale: false,
   routes: [
     {
       path: '/',
