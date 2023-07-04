@@ -7,6 +7,13 @@ type IResponseInterceptor = <T = any>(
     response: AxiosResponse<T>,
 ) => AxiosResponse<T>;
 
+interface Params {
+    search?: string | null | undefined,
+    pageSize: number,
+    pageIndex: number,
+    totalCount: number,
+}
+
 interface remoteConfig {
     url: string | null;
     pageIndex?: number;
@@ -25,7 +32,7 @@ export interface RemoteOption {
 const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) => {
     const { options, remote } = props;
 
-    const refRequestParams = useRef({
+    const refRequestParams = useRef<Omit<Params, "totalCount">>({
         search: undefined,
         pageSize: remote!.pageSize ?? 10,
         pageIndex: remote?.pageIndex ?? 1,
@@ -47,7 +54,6 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
         }
 
         const currentLength = render.options.length - (options?.length ?? 0);
-        console.log(currentLength, refTotalCount.current);
         if (currentLength !== 0 && refTotalCount.current !== 0 && currentLength >= refTotalCount.current) {
             return;
         }
