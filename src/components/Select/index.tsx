@@ -1,29 +1,26 @@
-import { AxiosResponse, request } from '@umijs/max';
+import { Method } from 'axios'
 import { Select, SelectProps } from 'antd';
 import { DefaultOptionType } from 'antd/es/select';
+import { AxiosResponse, request } from '@umijs/max';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
-type IResponseInterceptor = <T = any>(
-    response: AxiosResponse<T>,
-) => AxiosResponse<T>;
+type Model = "append" | "replace";
 
-interface Params {
-    search?: string | null | undefined,
-    pageSize: number,
-    pageIndex: number,
-    totalCount: number,
-}
+type IErrorInterceptor = (error: Error) => Promise<Error>;
+type IResponseInterceptor = <T = any>(response: AxiosResponse<T>) => AxiosResponse<T>;
+type IResponseInterceptorTuple = [IResponseInterceptor, IErrorInterceptor] | [IResponseInterceptor] | IResponseInterceptor
 
-interface remoteConfig {
+interface RemoteConfig {
     url: string | null;
+    method?: Method | string
     pageIndex?: number;
     pageSize?: number;
     immediately?: boolean;
-    responseInterceptors?: IResponseInterceptor;
+    responseInterceptors?: IResponseInterceptorTuple[];
 }
 
-interface RemoteSelectProps extends SelectProps {
-    remote?: remoteConfig;
+interface RemoteSelectProps extends Omit<SelectProps, "onInputKeyDown" | "onPopupScroll" | "onDropdownVisibleChange"> {
+    remote?: RemoteConfig;
 }
 
 export interface RemoteOption {
@@ -33,20 +30,32 @@ export interface RemoteOption {
 const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) => {
     const { options, remote } = props;
 
-    const refRequestParams = useRef<Omit<Params, "totalCount">>({
-        search: undefined,
-        pageSize: remote!.pageSize ?? 10,
-        pageIndex: remote?.pageIndex ?? 1,
-    })
-
-    const refTotalCount = useRef(0);
-
     const [loading, setLoading] = useState(false);
     const [remoteOption, setRemoteOption] = useState<RemoteOption>({
         options: options ?? []
     });
 
-    const getItems = async () => {
+    useImperativeHandle(ref, () => ({ options: remoteOption.options }));
+
+    const refTotalCount = useRef(0);
+
+    const refRequestParams = useRef({
+        search: undefined,
+        pageSize: remote!.pageSize ?? 10,
+        pageIndex: remote?.pageIndex ?? 1,
+    })
+
+    const handleClear = () => {
+        refTotalCount.current = 0;
+        refRequestParams.current.pageIndex = 1;
+        refRequestParams.current.search = undefined;
+
+        setRemoteOption({
+            options: options ?? []
+        });
+    }
+
+    const getRemoteOptions = async (model: Model) => {
         if (loading) {
             return;
         }
@@ -63,13 +72,21 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
 
         await request(remote!.url!, {
             params: refRequestParams.current,
-            responseInterceptors: remote?.responseInterceptors === null ? [] : [remote!.responseInterceptors!],
-        }).then((e) => {
+            method: remote!.method,
+            responseInterceptors: remote!.responseInterceptors,
+        }).then((e: { totalCount: number; data: any; }) => {
             refTotalCount.current = e.totalCount;
             refRequestParams.current.pageIndex += 1;
-            setRemoteOption({
-                options: [...remoteOption.options!, ...e.data]
-            });
+
+            if (model === 'append') {
+                setRemoteOption({
+                    options: [...remoteOption.options!, ...e.data]
+                });
+            } else if (model === 'replace') {
+                setRemoteOption({
+                    options: e.data
+                });
+            }
         }).then(() => {
             setLoading(false);
         });
@@ -80,7 +97,7 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
 
         const { scrollTop, offsetHeight, scrollHeight } = event.target;
         if (scrollTop + offsetHeight === scrollHeight) {
-            await getItems();
+            await getRemoteOptions('append');
         }
     };
 
@@ -92,31 +109,15 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
             refRequestParams.current.pageIndex = 1;
             refRequestParams.current.search = search;
 
-            setRemoteOption({
-                options: options ?? []
-            });
-
-            await getItems();
+            await getRemoteOptions('replace');
         }
-    }
-
-    const handleClear = () => {
-        refTotalCount.current = 0;
-        refRequestParams.current.pageIndex = 1;
-        refRequestParams.current.search = undefined;
-
-        setRemoteOption({
-            options: options ?? []
-        });
     }
 
     const handleDropdownVisibleChange = async (open: boolean) => {
-        if (open && (remote?.immediately ?? true) && (remoteOption.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
-            await getItems();
+        if (open && (remote?.immediately ?? false) && (remoteOption.options.length ?? 0) === (options?.length ?? 0) && (remote ?? '') !== '') {
+            await getRemoteOptions('append');
         }
     };
-
-    useImperativeHandle(ref, () => ({ options: remoteOption.options }));
 
     return (
         <Select
@@ -124,13 +125,11 @@ const RemoteSelect = forwardRef<RemoteOption, RemoteSelectProps>((props, ref) =>
             showSearch={true}
             allowClear={true}
             loading={loading}
-            filterOption={(input, option) =>
-                ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())
-            }
+            filterOption={false}
             onClear={handleClear}
             options={remoteOption.options}
-            onKeyDown={handleEnterKeyDown}
             onPopupScroll={handlePopupScroll}
+            onInputKeyDown={handleEnterKeyDown}
             onDropdownVisibleChange={handleDropdownVisibleChange}
         />
     );

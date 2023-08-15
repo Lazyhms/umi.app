@@ -7,26 +7,11 @@ const TableList: React.FC<unknown> = () => {
 
   return (
     <RemoteSelect
-      mode='multiple'
-      options={[
-        {
-          label: "请选择",
-          value: undefined
-        }
-      ]}
+      // mode='multiple'
       ref={childRef}
       remote={{
         url: '/api/dorpDown/roles',
-        pageSize: 10,
-        responseInterceptors: (e: any) => {
-          e.data.data = e.data.data.map((m: any) => {
-            return {
-              ...m,
-              label1: m.label,
-            }
-          });
-          return e;
-        }
+        immediately: false,
       }}
       onSelect={(e) => {
         const item = childRef.current?.options?.find((f: any) => f.value === e);

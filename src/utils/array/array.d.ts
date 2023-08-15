@@ -7,7 +7,7 @@ interface Array<T> {
      * 去重
      * @param predicate 
      */
-    distinctBy<S>(predicate: (value: T) => S): T[]
+    distinctBy<S extends keyof T>(predicate: (value: T) => S): T[]
     /**
      * 差集
      * @param array 
@@ -18,7 +18,7 @@ interface Array<T> {
      * @param array 
      * @param predicate 
      */
-    exceptBy<S>(array: T[], predicate: (value: T) => S): T[]
+    exceptBy<S extends keyof T>(array: T[], predicate: (value: T) => S): T[]
     /**
      * 交集
      * @param array 
@@ -29,5 +29,5 @@ interface Array<T> {
      * @param array 
      * @param predicate 
      */
-    intersectBy<S>(array: T[], predicate: (value: T) => S): T[]
+    intersectBy<S extends keyof T>(array: T[], predicate: (value: T) => S): T[]
 }

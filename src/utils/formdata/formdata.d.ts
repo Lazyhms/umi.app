@@ -1,3 +1,3 @@
 interface FormData {
-    toJson(): any
+    toJson<T>(obj?: T): T
 }

@@ -9,7 +9,7 @@ Date.prototype.format = function (formatStr: string): string {
         "S": this.getMilliseconds() //毫秒   
     };
 
-    let fmt = '';
+    let fmt = formatStr;
     if (/(y+)/.test(formatStr)) {
         fmt = formatStr.replace(/(y+)/, this.getFullYear().toString());
     }

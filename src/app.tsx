@@ -1,4 +1,3 @@
-import "@/utils"
 import {
     GithubFilled,
     InfoCircleFilled, QuestionCircleFilled
@@ -16,6 +15,10 @@ export const layout: RunTimeLayoutConfig = () => {
                 message.warning("111");
             }
         },
+        menu: {
+            locale: false
+        },
+        theme: "light",
         actionsRender: (props: any) => {
             if (props.isMobile) {
                 return [];

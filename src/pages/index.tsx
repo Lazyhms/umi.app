@@ -1,11 +1,12 @@
 import { PageContainer } from '@ant-design/pro-components';
 import styles from './index.less';
 import { Divider } from 'antd';
+import { Timer } from '@/components/Timer';
 
 const HomePage: React.FC = () => {
 
   const o: any[] = [
-    { name: "111" },
+    { name: "111", code: "222" },
     { name: "111" },
     { name: "222" }
   ];
@@ -15,28 +16,39 @@ const HomePage: React.FC = () => {
     { name: "333" },
   ];
 
-  const name: string | null = "           ";
+  const name: string | null = "2";
+
+  const f = () => {
+
+    let formdata = new FormData();
+    formdata.append("name", "2222");
+    formdata.append("file", new Blob())
+    formdata.append("sex", "2222");
+    return formdata;
+  }
 
   return (
     <PageContainer ghost>
       <div className={styles.container}>
-        {name.isNullOrWhiteSpace().toString()}
+        <Timer format={'yyyy年MM月dd日 HH时mm分ss秒'}></Timer>
+        <Divider type="horizontal" />
+        {name}
+        <Divider type="horizontal" />
+        {name.isNullOrEmpty().toString()}
         <Divider type="horizontal" />
         {"name".isNullOrWhiteSpace().toString()}
         <Divider type="horizontal" />
-        {new Date().format("yyyy-MM-dd HH:mm:ss")}
+        {JSON.stringify(f().toJson())}
         <Divider type="horizontal" />
-        {[1, 1, 2, 3, 4, 5].distinct().toString()}
+        <label>O {JSON.stringify(o)}</label>
         <Divider type="horizontal" />
-        <label>去重：{JSON.stringify(o.distinctBy(d => d.name))}</label>
+        <label>B {JSON.stringify(b)}</label>
         <Divider type="horizontal" />
-        <label>差集：{JSON.stringify([1, 3, 4].except([3, 4, 5]))}</label>
+        <label>O 去重：{JSON.stringify(o.distinctBy(d => d.name))}</label>
         <Divider type="horizontal" />
-        <label>差集：{JSON.stringify(o.exceptBy(b, p => p.name))}</label>
+        <label>O B 差集：{JSON.stringify(o.exceptBy(b, p => p.name))}</label>
         <Divider type="horizontal" />
-        <label>交集：{JSON.stringify([1, 3, 4].intersect([3, 4, 5]))}</label>
-        <Divider type="horizontal" />
-        <label>交集：{JSON.stringify(o.intersectBy(b, p => p.name))}</label>
+        <label>O B 交集: {JSON.stringify(o.intersectBy(b, p => p.name))}</label>
       </div>
     </PageContainer>
   );
